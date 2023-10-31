@@ -21,6 +21,7 @@ def load_language_pack(lang_code):
     except Exception as e:
         print(f"Error loading language pack for {lang_code}: {e}")
         return None
+
 # Инициализация бота
 bot = telebot.TeleBot(bot_token)
 
@@ -61,6 +62,43 @@ def lang_keyboard(cb_param):
     ]
     markup.add(*buttons)  # Unpacking the list to add all buttons
     return markup
+
+#=====операционная клавиатура
+@log_decorator
+def generate_operations_keyboard(type, language_pack, uid):
+    """
+    Generate an inline keyboard with financial operations.
+    
+    Args:
+    - language_pack (dict): The language pack containing the translations.
+    
+    Returns:
+    - InlineKeyboardMarkup: The generated keyboard.
+    """
+
+    lang_code = get_user_language(uid)
+    language_pack = load_language_pack(lang_code)
+    # keyboard = generate_operations_keyboard("enter_data", language_pack)
+    print(f'принт из генератора клавы {lang_code}, {language_pack}')
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    if type == "enter_data":
+        
+        buttons = [
+            types.InlineKeyboardButton(language_pack['record_expense'], callback_data='record_expense'),
+            types.InlineKeyboardButton(language_pack['record_income'], callback_data='record_income'),
+            types.InlineKeyboardButton(language_pack['financial_entries'], callback_data='financial_entries'),
+            types.InlineKeyboardButton(language_pack['get_reports'], callback_data='get_reports')
+        ]
+    else:
+        buttons = [
+            types.InlineKeyboardButton(language_pack['record_expense'], callback_data='record_expense'),
+            types.InlineKeyboardButton(language_pack['record_income'], callback_data='record_income'),
+            types.InlineKeyboardButton(language_pack['financial_entries'], callback_data='financial_entries'),
+            #types.InlineKeyboardButton(language_pack['get_reports'], callback_data='get_reports')
+        ]
+    markup.add(*buttons)
+    return markup
+
 
 # Стартовая команда
 
@@ -138,6 +176,19 @@ def change_language_callback(call):
             error_msg = load_translation("error", language)
             bot.answer_callback_query(call.id, error_msg)
             print(f'2')
-        
+     
+@bot.message_handler(content_types=["text"])
+@log_decorator
+def main(message):
+    print(f'принт из функции main')
+    lang_code = get_user_language(message.from_user.id)
+    language_pack = load_language_pack(lang_code)
+    if message.text.isdigit() :
+        bot.reply_to(message, f'Что мне сделать?', reply_markup = generate_operations_keyboard("enter_data", language_pack, message.from_user.id))
+        print(f"введено число lang:   {language_pack}")
+    else:
+        bot.reply_to(message, f'Что мне сделать?', reply_markup = generate_operations_keyboard("enter_string", language_pack, message.from_user.id))
+        print(f"введено строка lang:   {language_pack}")
+
 if __name__ == "__main__":
     bot.polling(none_stop=True)
