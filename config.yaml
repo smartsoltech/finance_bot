@@ -1,0 +1,14 @@
+database:
+  type: sqlite
+  path: 'db'
+  filename: 'finance.db'
+language:
+  default: en
+logging:
+  level: INFO  # Может быть DEBUG, INFO, WARNING, ERROR, CRITICAL
+  path: 'logs'
+  filename: 'log'
+db_logging:
+  level: INFO  # Может быть DEBUG, INFO, WARNING, ERROR, CRITICAL
+  path: 'logs'
+  filename: 'db_log'
