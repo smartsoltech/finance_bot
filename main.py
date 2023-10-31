@@ -52,8 +52,8 @@ def load_translation(phrase_key, user_language):
             translations = yaml.safe_load(lang_file)
             return translations.get(phrase_key, "Translation not found!")
     except Exception as e:
-        logger.error(f"Error loading translation for key {phrase_key} and language {user_language}: {e}")
-        return "Translation not found!"
+       print(f"Error loading translation for key {phrase_key} and language {user_language}: {e}")
+    return "Translation not found!"
 
 
 if __name__ == "__main__":

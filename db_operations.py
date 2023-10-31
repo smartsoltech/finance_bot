@@ -112,7 +112,7 @@ def update_user_language(telegram_id, language):
     """Обновление языка пользователя."""
     session = Session()
     try:
-        user = session.query(User).filter_by(telegram_id=telegram_id).first()
+        user = session.query(User).filter_by(id=telegram_id).first()
         if user:
             user.language = language
             session.commit()

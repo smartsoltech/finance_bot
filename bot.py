@@ -50,6 +50,7 @@ def lang_keyboard(cb_param):
     Returns:
     - InlineKeyboardMarkup: The created keyboard.
     """
+    print(f'принт из функции клавиатуры {cb_param}')
     markup = types.InlineKeyboardMarkup(row_width=2)  # Set row_width to 2 for a more organized layout
     buttons = [
         types.InlineKeyboardButton('🇺🇸 English', callback_data=f'{cb_param}_en'),
@@ -98,33 +99,45 @@ def send_help(message):
     # Здесь вы можете добавить инструкции по использованию вашего бота.
     bot.send_message(message.chat.id, "This is a financial management bot...")
 
+
 # ====== смена языка для зареганных юзеров
 @bot.message_handler(commands=['change_language'])
+@log_decorator
 def change_language_command(message):
     user_id = message.chat.id
     user_language = get_user_language(user_id)
 
     if check_user_exists(user_id):  # Проверка регистрации
         msg = load_translation("choose_language", user_language)
-        bot.send_message(user_id, msg, reply_markup=lang_keyboard('change_language'))
+        bot.send_message(user_id, msg, reply_markup=lang_keyboard('change lang'))
     else:
         msg = load_translation("please_register_first", user_language)
         bot.send_message(user_id, msg)
 
-@bot.callback_query_handler(func=lambda call: 'change_language' in call.data)
+@bot.callback_query_handler(func=lambda call: call.data.startswith('change lang'))
+@log_decorator
 def change_language_callback(call):
+    print(f'принт из функции change_language_callback{call.data}')
     user_id = call.message.chat.id
     language = call.data.split('_')[1]  # Извлечение языка из callback_data 
-
-    if set_user_language(user_id, language):  # Смена языка
-        success_msg = load_translation("language_changed", language)
-        bot.answer_callback_query(call.id, success_msg)
-        welcome_msg = load_translation("welcome", language)
-        bot.send_message(call.message.chat.id, welcome_msg)
+    print(f'полученный язык: {language}')
+    if not set_user_language(user_id, language):  # Смена языка в чате
+        print(user_id, language)
+        update_user_language(user_id, language) # смена языка в бд
+        # провекрка на смену языка
+        if get_user_language(user_id) == language:
+            success_msg = load_translation("language_changed", language)
+            bot.answer_callback_query(call.id, success_msg)
+            welcome_msg = load_translation("welcome", language)
+            bot.send_message(call.message.chat.id, welcome_msg)
+        else:
+            error_msg = load_translation("error", language)
+            bot.answer_callback_query(call.id, error_msg)
+            print(f'1')
     else:
-        error_msg = load_translation("error", language)
-        bot.answer_callback_query(call.id, error_msg)
-
+            error_msg = load_translation("error", language)
+            bot.answer_callback_query(call.id, error_msg)
+            print(f'2')
         
 if __name__ == "__main__":
     bot.polling(none_stop=True)
