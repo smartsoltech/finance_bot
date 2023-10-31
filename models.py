@@ -8,9 +8,11 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, unique=True, index=True)
-    language = Column(String(2))
+    id = Column(Integer, primary_key=True)  # Telegram user ID
+    language = Column(String(5))  # e.g., 'en', 'ru'
+    first_name = Column(String(100))  # User's first name
+    last_name = Column(String(100))  # User's last name
+    uid = Column(String(50))  # Unique Telegram ID for the user
     transactions = relationship("Transaction", back_populates="user")
     session = relationship("UserSession", uselist=False, back_populates="user")
 

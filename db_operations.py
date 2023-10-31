@@ -1,6 +1,6 @@
 from main import load_config
 from sqlalchemy import create_engine, exc, inspect
-from log import log_decorator, setup_logger
+from log import log_decorator, setup_logger, logger
 from models import User, Transaction, FinancialEntry, Base
 from sqlalchemy.orm import sessionmaker
 
@@ -204,24 +204,33 @@ def check_user_exists(user_id):
     session.close()
     return bool(user)
 
-
-def register_user(user_id, language='en'):
+@log_decorator
+def register_user(user_id, language, first_name, last_name, uid):
     """
-    Register a new user in the database.
+    Register a new user into the database.
     
     Args:
-    - user_id (int): The user's Telegram ID.
-    - language (str): The user's preferred language. Default is 'en'.
+    - user_id (int): Telegram user ID.
+    - language (str): User's preferred language.
+    - first_name (str): User's first name.
+    - last_name (str): User's last name.
+    - uid (str): Unique ID for the user.
     
     Returns:
-    - User: The created user object.
+    - User: New user object.
     """
-    session = Session()
-    new_user = User(id=user_id, language=language, fist_name, last_name, uid)
-    session.add(new_user)
-    session.commit()
-    session.close()
-    return new_user
+    try:
+        session = Session()
+        new_user = User(id=user_id, language=language, first_name=first_name, last_name=last_name, uid=uid)
+        session.add(new_user)
+        session.commit()
+        return new_user
+    except Exception as e:
+        logger.error(f"Error registering user {user_id}: {e}")
+        session.rollback()
+        return None
+    finally:
+        session.close()
 
 
 def get_user_language(user_id):
