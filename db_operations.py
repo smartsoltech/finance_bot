@@ -324,3 +324,12 @@ def get_user_language(user_id):
         return None
     finally:
         session.close()
+
+
+
+def get_financial_entries_by_type(user_id, is_expense=True):
+    session = Session()
+    try:
+        return session.query(FinancialEntry).filter_by(user_id=user_id, is_expense=is_expense).all()
+    finally:
+        session.close()

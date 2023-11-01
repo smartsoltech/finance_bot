@@ -56,6 +56,14 @@ def load_translation(phrase_key, user_language):
        print(f"Error loading translation for key {phrase_key} and language {user_language}: {e}")
     #return "Translation not found!"
 
-
+# приведение строки к float, замена запятых на точку
+def parse_float_input(input_str):
+    try:
+        return float(input_str)
+    except ValueError:
+        try:
+            return float(input_str.replace(',', '.'))
+        except ValueError:
+            return None
 if __name__ == "__main__":
     print(cfg)

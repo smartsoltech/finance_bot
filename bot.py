@@ -1,13 +1,13 @@
 import telebot
 from telebot import types
-from main import load_config, load_translation
+from main import load_config, load_translation, parse_float_input
 import yaml
 from log import log_decorator
 from db_operations import set_user_language, update_user_language, check_user_exists, get_user_language, register_user
 from models import Transaction
 from db_operations import add_record_to_db, get_expense_entries, get_income_entries, add_financial_entry ,get_financial_entry_by_name, get_all_transactions_by_user_id
 from db_operations import get_user_session_state, update_user_session_state, start_user_session, get_financial_entry_by_telegram_id
-
+from db_operations import get_financial_entries_by_type
 # Загружаем конфигурацию
 config = load_config()
 bot_token = config['bot_token']
@@ -102,10 +102,16 @@ def generate_operations_keyboard(type, language_pack, uid):
         ] 
     elif type == "fin_entry_expense":
         expense_entries = get_expense_entries(uid)
+        for entry in expense_entries:
+            print(f"Entry name: {entry.name}, Entry ID: {entry.id}")
+    # buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'expense_save_{entry.id}') for entry in expense_entries]
+        # buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'expense_save_{entry.id}') for entry in expense_entries]
         buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'expense_save_{entry.id}') for entry in expense_entries]
 
     elif type == "fin_entry_income":
         income_entries = get_income_entries(uid)
+        for entry in income_entries:
+            print(f"Entry name: {entry.name}, Entry ID: {entry.id}")        
         buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'income_save_{entry.id}') for entry in income_entries]
     elif type == "entry_edit":
         buttons = [
@@ -205,7 +211,7 @@ def change_language_callback(call):
 @bot.message_handler(commands=['add_entry'])
 def add_entry_command(message):
     start_user_session(message.chat.id, "ADDING_ENTRY_NAME")
-    bot.send_message(message.chat.id, "Введите название статьи:")
+    bot.reply_to(message, load_translation("category_name", get_user_language(message.from_user.id)))
 
 @bot.message_handler(func=lambda message: get_user_session_state(message.chat.id) == "ADDING_ENTRY_NAME", content_types=['text'])
 def get_entry_name(message):
@@ -215,7 +221,7 @@ def get_entry_name(message):
     user_amounts[message.chat.id] = {"entry_name": user_entry_name}
     update_user_session_state(message.chat.id, "ADDING_ENTRY_TYPE")
     markup = generate_operations_keyboard("entry_edit", get_user_language(message.from_user.id), message.from_user.id)
-    bot.send_message(message.chat.id, "Выберите тип статьи:", reply_markup=markup)
+    bot.send_message(message.chat.id, load_translation("category_name", get_user_language(message.from_user.id)), reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: get_user_session_state(call.message.chat.id) == "ADDING_ENTRY_TYPE" and call.data in ["expense_entry", "income_entry"])
 def handle_entry_type(call):
@@ -232,100 +238,77 @@ def handle_entry_type(call):
     del user_amounts[call.message.chat.id]
     update_user_session_state(call.message.chat.id, "START")
 
-@bot.message_handler(func=lambda message: message.text.isdigit())
+@bot.message_handler(func=lambda message: any(char.isdigit() for char in message.text))
 @log_decorator
 def handle_number_input(message):
     print('принт из функции ввода транзакций 1')
-    user_amounts[message.from_user.id] = message.text
-        # Set the user session state to "ADDING_TRANSACTION"
+    
+    # Попытка преобразовать введенный текст в float
+    try:
+        amount = parse_float_input(message.text)
+    except ValueError:
+        bot.send_message(message.chat.id, "Ошибка! Неверный формат суммы.")
+        return
+
+    user_amounts[message.from_user.id] = amount
     start_user_session(message.chat.id, "ADDING_TRANSACTION")
     print(f' состояние юзера: {get_user_session_state(message.from_user.id)}')
     entries = get_financial_entry_by_telegram_id(message.from_user.id)
     
     print(entries)
-    bot.send_message(message.chat.id, load_translation(load_translation("choose_category", get_user_language(message.from_user.id)), get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("income_expense", load_language_pack(get_user_language(message.from_user.id)), message.from_user.id))
+    bot.send_message(message.chat.id, load_translation("category_name", get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("income_expense", load_language_pack(get_user_language(message.from_user.id)), message.from_user.id))
+
 
 @bot.callback_query_handler(func=lambda call: (call.data.startswith('expense_save') or call.data.startswith('income_save')) and get_user_session_state(call.message.chat.id) == "ADDING_TRANSACTION")
 @log_decorator
 def record_transaction(call):
-    # Определение типа транзакции
-    transaction_type = "expense" if call.data.startswith('expense_save') else "income"
-    print('принт из функции ввода транзакций 2')
+    
+    entry_id = call.data.split('_')[-1]
+    if not entry_id.isdigit():
+        bot.send_message(call.message.chat.id, "Ошибка! ID статьи не найден.")
+        return
+    
+    entries = get_financial_entries_by_type(call.from_user.id, 'True')
+    if call.data == "expense_save":
+        transaction_type = "expense"
+        markup = generate_operations_keyboard('fin_entry_expense', get_user_language(call.from_user.id), call.from_user.id)
+        bot.reply_to(call.message, load_translation("choose_category", get_user_language(call.message.chat.id)), reply_markup = markup)
+    elif call.data == "income_save":
+        transaction_type = "income"
+        markup = generate_operations_keyboard('fin_entry_income', get_user_language(call.from_user.id), call.from_user.id)
+        bot.reply_to(call.message, load_translation("choose_category", get_user_language(call.message.chat.id)), reply_markup = markup)
+    
+    print(f'Record_transaction_call: {call}')
+    
     amount = user_amounts.pop(call.from_user.id, None)
+    amount_float = parse_float_input(amount)
     if not amount:
         bot.send_message(call.message.chat.id, "Ошибка! Сумма не найдена.")
         return
-
+    
+    if transaction_type == "expense":
+        amount_float = -amount_float
+        
     try:
         amount_float = float(amount)
     except ValueError:
         bot.send_message(call.message.chat.id, "Ошибка! Неверный формат суммы.")
         return
 
-    entry = get_financial_entry_by_telegram_id(call.message.chat.id)
-    if not entry:
-        bot.send_message(call.message.chat.id, "Ошибка! Статья не найдена.")
-        return
-
     # Если транзакция является расходом, делаем сумму отрицательной
-    if transaction_type == "expense":
-        amount_float = -amount_float
+    entry = call.data
+    print({f'ENTRY:    {entry}'})
+    entry_id = call.data.split('-')[-1]
+    print(f"Extracted entry ID: {entry_id}")  # Добавьте этот print для отладки
 
-    transaction = Transaction(user_id=call.from_user.id, amount=amount_float, entry=entry)
+    transaction = Transaction(user_id=call.from_user.id, amount=amount_float, entry=entry_id)
     add_record_to_db(transaction)
+
     bot.send_message(call.message.chat.id, load_translation("amount_added", get_user_language(call.message.chat.id)))
 
     # Обновляем состояние пользователя после успешного добавления записи
     update_user_session_state(call.message.chat.id, "START")
 
-
-# @bot.message_handler(func=lambda message: get_user_session_state(message.chat.id) == "ADDING_ENTRY_AMOUNT", content_types=['text'])
-# def handle_entry_amount(message):
-#     try:
-#         amount = float(message.text)
-#         # ... (сохранение суммы и вывод клавиатуры для выбора типа записи)
-#         update_user_session_state(message.chat.id, "CHOOSING_ENTRY_TYPE")
-#     except ValueError:
-#         bot.send_message(message.chat.id, "Пожалуйста, введите корректную сумму.")
-
-
-# @bot.callback_query_handler(func=lambda call: call.data == 'record_expense')
-# @log_decorator
-# def choose_expense_category(call):
-#     bot.send_message(call.message.chat.id, load_translation("choose_category", get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("fin_entry_expense", load_language_pack(get_user_language(call.from_user.id)), call.from_user.id))
-
-# @bot.callback_query_handler(func=lambda call: (call.data.startswith('expense_save') or call.data.startswith('income_save')) and get_user_session_state(call.message.chat.id) == "ADDING_TRANSACTION")
-# @log_decorator
-# def record_transaction(call):
-#     # Определение типа транзакции
-#     transaction_type = "expense" if call.data.startswith('expense_save') else "income"
-    
-#     amount = user_amounts.pop(call.from_user.id, None)
-#     if not amount:
-#         bot.send_message(call.message.chat.id, "Ошибка! Сумма не найдена.")
-#         return
-
-#     try:
-#         amount_float = float(amount)
-#     except ValueError:
-#         bot.send_message(call.message.chat.id, "Ошибка! Неверный формат суммы.")
-#         return
-
-#     entry = get_financial_entry_by_name(transaction_type, call.message.chat.id)
-#     if not entry:
-#         bot.send_message(call.message.chat.id, "Ошибка! Статья не найдена.")
-#         return
-
-#     # Если транзакция является расходом, делаем сумму отрицательной
-#     if transaction_type == "expense":
-#         amount_float = -amount_float
-
-#     transaction = Transaction(user_id=call.from_user.id, amount=amount_float, entry=entry)
-#     add_record_to_db(transaction)
-#     bot.send_message(call.message.chat.id, load_translation("amount_added", get_user_language(call.message.chat.id)))
-
-#     # Обновляем состояние пользователя после успешного добавления записи
-#     update_user_session_state(call.message.chat.id, "START")
 
 if __name__ == "__main__":
     bot.polling(none_stop=True)
