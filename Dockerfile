@@ -11,7 +11,7 @@ COPY . /app
 # This is a common pattern when using Alpine to keep the image size small
 RUN apk add --no-cache --virtual .build-deps gcc musl-dev libffi-dev openssl-dev && \
     pip install --no-cache-dir -r requirements.txt && \
-    apk del .build-deps && apt install -y sqlite
+    apk del .build-deps
 
 # Make port 80 available to the world outside this container
 EXPOSE 8090
