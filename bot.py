@@ -240,6 +240,9 @@ def handle_number_input(message):
         # Set the user session state to "ADDING_TRANSACTION"
     start_user_session(message.chat.id, "ADDING_TRANSACTION")
     print(f' состояние юзера: {get_user_session_state(message.from_user.id)}')
+    entries = get_financial_entry_by_telegram_id(message.from_user.id)
+    
+    print(entries)
     bot.send_message(message.chat.id, load_translation(load_translation("choose_category", get_user_language(message.from_user.id)), get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("income_expense", load_language_pack(get_user_language(message.from_user.id)), message.from_user.id))
 
 @bot.callback_query_handler(func=lambda call: (call.data.startswith('expense_save') or call.data.startswith('income_save')) and get_user_session_state(call.message.chat.id) == "ADDING_TRANSACTION")

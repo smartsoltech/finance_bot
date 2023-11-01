@@ -108,7 +108,7 @@ def get_financial_entry_by_name(entry_name, user_id):
 def get_financial_entry_by_telegram_id(user_id):
     session = Session()
     try:
-        return session.query(FinancialEntry).filter_by(user_id=user_id).first()
+        return session.query(FinancialEntry).filter_by(user_id=user_id).all()
     finally:
         session.close()
         
@@ -121,6 +121,22 @@ def add_record_to_db(record):
     except Exception as e:
         session.rollback()
         raise e
+    finally:
+        session.close()
+
+@log_decorator
+def get_expense_entries(telegram_id):
+    session = Session()
+    try:
+        return session.query(FinancialEntry).filter_by(is_expense=True, user_id=telegram_id).all()
+    finally:
+        session.close()
+        
+@log_decorator
+def get_income_entries(telegram_id):
+    session = Session()
+    try:
+        return session.query(FinancialEntry).filter_by(is_expense=False, user_id=telegram_id).all()
     finally:
         session.close()
 
