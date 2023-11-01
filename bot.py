@@ -14,7 +14,6 @@ bot_token = config['bot_token']
 
 # Глобальное временное хранилище
 user_amounts = {}
-
 # загрузка языкового пакета
 @log_decorator
 def load_language_pack(lang_code):
@@ -57,7 +56,7 @@ def lang_keyboard(cb_param):
     Returns:
     - InlineKeyboardMarkup: The created keyboard.
     """
-    print(f'принт из функции клавиатуры {cb_param}')
+    # print(f'принт из функции клавиатуры {cb_param}')
     markup = types.InlineKeyboardMarkup(row_width=2)  # Set row_width to 2 for a more organized layout
     buttons = [
         types.InlineKeyboardButton('🇺🇸 English', callback_data=f'{cb_param}_en'),
@@ -81,11 +80,9 @@ def generate_operations_keyboard(type, language_pack, uid):
     Returns:
     - InlineKeyboardMarkup: The generated keyboard.
     """
-
+    # print(global_callback)
     lang_code = get_user_language(uid)
     language_pack = load_language_pack(lang_code)
-    # keyboard = generate_operations_keyboard("enter_data", language_pack)
-    # print(f'принт из генератора клавы {lang_code}, {language_pack}')
     markup = types.InlineKeyboardMarkup(row_width=2)
     if type == "enter_data":
         
@@ -102,16 +99,10 @@ def generate_operations_keyboard(type, language_pack, uid):
         ] 
     elif type == "fin_entry_expense":
         expense_entries = get_expense_entries(uid)
-        for entry in expense_entries:
-            print(f"Entry name: {entry.name}, Entry ID: {entry.id}")
-    # buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'expense_save_{entry.id}') for entry in expense_entries]
-        # buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'expense_save_{entry.id}') for entry in expense_entries]
         buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'expense_save_{entry.id}') for entry in expense_entries]
 
     elif type == "fin_entry_income":
-        income_entries = get_income_entries(uid)
-        for entry in income_entries:
-            print(f"Entry name: {entry.name}, Entry ID: {entry.id}")        
+        income_entries = get_income_entries(uid)       
         buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'income_save_{entry.id}') for entry in income_entries]
     elif type == "entry_edit":
         buttons = [
@@ -184,12 +175,9 @@ def change_language_command(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('change lang'))
 @log_decorator
 def change_language_callback(call):
-    # print(f'принт из функции change_language_callback{call.data}')
     user_id = call.message.chat.id
     language = call.data.split('_')[1]  # Извлечение языка из callback_data 
-    # print(f'полученный язык: {language}')
     if not set_user_language(user_id, language):  # Смена языка в чате
-        # print(user_id, language)
         update_user_language(user_id, language) # смена языка в бд
         # провекрка на смену языка
         if get_user_language(user_id) == language:
@@ -200,11 +188,9 @@ def change_language_callback(call):
         else:
             error_msg = load_translation("error", language)
             bot.answer_callback_query(call.id, error_msg)
-            print(f'1')
     else:
             error_msg = load_translation("error", language)
             bot.answer_callback_query(call.id, error_msg)
-            print(f'2')
 
 # ====== управление статьями доходов и расходов
 
@@ -241,8 +227,6 @@ def handle_entry_type(call):
 @bot.message_handler(func=lambda message: any(char.isdigit() for char in message.text))
 @log_decorator
 def handle_number_input(message):
-    print('принт из функции ввода транзакций 1')
-    
     # Попытка преобразовать введенный текст в float
     try:
         amount = parse_float_input(message.text)
@@ -252,63 +236,43 @@ def handle_number_input(message):
 
     user_amounts[message.from_user.id] = amount
     start_user_session(message.chat.id, "ADDING_TRANSACTION")
-    print(f' состояние юзера: {get_user_session_state(message.from_user.id)}')
     entries = get_financial_entry_by_telegram_id(message.from_user.id)
-    
-    print(entries)
-    bot.send_message(message.chat.id, load_translation("category_name", get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("income_expense", load_language_pack(get_user_language(message.from_user.id)), message.from_user.id))
+    bot.reply_to(message, load_translation("add_transaction", get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("income_expense", load_language_pack(get_user_language(message.from_user.id)), message.from_user.id))
 
 
 @bot.callback_query_handler(func=lambda call: (call.data.startswith('expense_save') or call.data.startswith('income_save')) and get_user_session_state(call.message.chat.id) == "ADDING_TRANSACTION")
 @log_decorator
 def record_transaction(call):
-    
-    entry_id = call.data.split('_')[-1]
-    if not entry_id.isdigit():
-        bot.send_message(call.message.chat.id, "Ошибка! ID статьи не найден.")
+    user_id = call.from_user.id
+    user_language = get_user_language(user_id)
+
+    if call.data in ["expense_save", "income_save"]:
+        transaction_type = "expense" if call.data == "expense_save" else "income"
+        markup_type = 'fin_entry_expense' if transaction_type == "expense" else 'fin_entry_income'
+        markup = generate_operations_keyboard(markup_type, user_language, user_id)
+        bot.reply_to(call.message, load_translation("choose_category", user_language), reply_markup=markup)
         return
-    
-    entries = get_financial_entries_by_type(call.from_user.id, 'True')
-    if call.data == "expense_save":
-        transaction_type = "expense"
-        markup = generate_operations_keyboard('fin_entry_expense', get_user_language(call.from_user.id), call.from_user.id)
-        bot.reply_to(call.message, load_translation("choose_category", get_user_language(call.message.chat.id)), reply_markup = markup)
-    elif call.data == "income_save":
-        transaction_type = "income"
-        markup = generate_operations_keyboard('fin_entry_income', get_user_language(call.from_user.id), call.from_user.id)
-        bot.reply_to(call.message, load_translation("choose_category", get_user_language(call.message.chat.id)), reply_markup = markup)
-    
-    print(f'Record_transaction_call: {call}')
-    
-    amount = user_amounts.pop(call.from_user.id, None)
-    amount_float = parse_float_input(amount)
+
+    amount = user_amounts.pop(user_id, None)
     if not amount:
         bot.send_message(call.message.chat.id, "Ошибка! Сумма не найдена.")
         return
-    
-    if transaction_type == "expense":
-        amount_float = -amount_float
-        
+
     try:
         amount_float = float(amount)
+        if "expense" in call.data:
+            amount_float = -amount_float
     except ValueError:
         bot.send_message(call.message.chat.id, "Ошибка! Неверный формат суммы.")
         return
 
-    # Если транзакция является расходом, делаем сумму отрицательной
-    entry = call.data
-    print({f'ENTRY:    {entry}'})
-    entry_id = call.data.split('-')[-1]
-    print(f"Extracted entry ID: {entry_id}")  # Добавьте этот print для отладки
-
-    transaction = Transaction(user_id=call.from_user.id, amount=amount_float, entry=entry_id)
+    entry_id = call.data.split('_')[-1]
+    print(call.data, entry_id)
+    transaction = Transaction(user_id=user_id, amount=amount_float, entry_id=entry_id)
     add_record_to_db(transaction)
 
-    bot.send_message(call.message.chat.id, load_translation("amount_added", get_user_language(call.message.chat.id)))
-
-    # Обновляем состояние пользователя после успешного добавления записи
+    bot.send_message(call.message.chat.id, load_translation("amount_added", user_language))
     update_user_session_state(call.message.chat.id, "START")
-
 
 if __name__ == "__main__":
     bot.polling(none_stop=True)
