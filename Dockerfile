@@ -11,10 +11,10 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Make port 80 available to the world outside this container
-EXPOSE 80
+EXPOSE 8090
 
 # Define environment variable
 ENV NAME World
 
 # Run bot.py when the container launches
-CMD ["python3 -m ", "bot.py"]
+CMD ["python3", "-m ", "bot.py"]
