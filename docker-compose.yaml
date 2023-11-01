@@ -10,10 +10,5 @@ services:
     environment:
       - DATABASE_URL=sqlite:///db/data.db
 
-  db:
-    image: "appropriate/curl"  # This is just a lightweight image since we're using SQLite. Replace with a proper DB image if needed.
-    volumes:
-      - db-data:/db
-
 volumes:
   db-data:
