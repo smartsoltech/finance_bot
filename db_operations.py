@@ -1,7 +1,7 @@
 from main import load_config
 from sqlalchemy import create_engine, exc, inspect
 from log import log_decorator, setup_logger, logger
-from models import User, Transaction, FinancialEntry, Base
+from models import User, Transaction, FinancialEntry, Base, UserSession
 from sqlalchemy.orm import sessionmaker
 
 @log_decorator
@@ -105,6 +105,14 @@ def get_financial_entry_by_name(entry_name, user_id):
         session.close()
 
 @log_decorator
+def get_financial_entry_by_telegram_id(user_id):
+    session = Session()
+    try:
+        return session.query(FinancialEntry).filter_by(user_id=user_id).first()
+    finally:
+        session.close()
+        
+@log_decorator
 def add_record_to_db(record):
     session = Session()
     try:
@@ -118,10 +126,10 @@ def add_record_to_db(record):
 
 
 @log_decorator
-def get_user_by_telegram_id(telegram_id):
+def get_user_by_telegram_id(uid):
     """Получение пользователя по ID в Telegram."""
     session = Session()
-    user = session.query(User).filter_by(telegram_id=telegram_id).first()
+    user = session.query(User).filter_by(uid=uid).first()
     session.close()
     return user
 
@@ -155,7 +163,7 @@ def update_user_language(telegram_id, language):
     """Обновление языка пользователя."""
     session = Session()
     try:
-        user = session.query(User).filter_by(id=telegram_id).first()
+        user = session.query(User).filter_by(uid=telegram_id).first()
         if user:
             user.language = language
             session.commit()
@@ -178,7 +186,10 @@ def start_user_session(telegram_id, initial_state="START"):
     """
     session = Session()
     try:
-        user = get_user_by_telegram_id(telegram_id)
+        user = session.query(User).filter_by(id=telegram_id).first()
+        if not user:
+            raise ValueError(f"User with telegram_id {telegram_id} not found.")
+        
         user_session = session.query(UserSession).filter_by(user_id=user.id).first()
         
         if not user_session:
@@ -243,7 +254,7 @@ def check_user_exists(user_id):
     - bool: True if the user exists, False otherwise.
     """
     session = Session()
-    user = session.query(User).filter_by(id=user_id).first()
+    user = session.query(User).filter_by(uid=user_id).first()
     session.close()
     return bool(user)
 

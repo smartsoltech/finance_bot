@@ -50,10 +50,11 @@ def load_translation(phrase_key, user_language):
         lang_file_path = os.path.join('lang', f"{user_language}.yaml")
         with open(lang_file_path, 'r') as lang_file:
             translations = yaml.safe_load(lang_file)
-            return translations.get(phrase_key, "Translation not found!")
+            print(phrase_key)
+            return translations.get(phrase_key, "Translation not found!!!")
     except Exception as e:
        print(f"Error loading translation for key {phrase_key} and language {user_language}: {e}")
-    return "Translation not found!"
+    #return "Translation not found!"
 
 
 if __name__ == "__main__":
