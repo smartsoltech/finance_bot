@@ -15,6 +15,7 @@ class User(Base):
     uid = Column(String(50))  # Unique Telegram ID for the user
     transactions = relationship("Transaction", back_populates="user")
     session = relationship("UserSession", uselist=False, back_populates="user")
+    financial_entries = relationship("FinancialEntry", back_populates="user")
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -33,7 +34,10 @@ class FinancialEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     is_expense = Column(Boolean, default=True)
+    user_id = Column(Integer, ForeignKey('users.id'))  # Добавляем поле user_id
     transactions = relationship("Transaction", back_populates="entry")
+    user = relationship("User", back_populates="financial_entries")  # Добавляем отношение с моделью User
+
 
 class UserSession(Base):
     __tablename__ = "user_sessions"

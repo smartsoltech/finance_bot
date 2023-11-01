@@ -70,9 +70,42 @@ def set_user_language(user_id, language):
         
 #=============== main operations functions==============
 
+def add_financial_entry(name, is_expense, user_id):
+    session = Session()
+    try:
+        entry = FinancialEntry(name=name, is_expense=is_expense, user_id=user_id)
+        session.add(entry)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+
+@log_decorator
+def delete_financial_entry(entry_id, user_id):
+    session = Session()
+    try:
+        entry = session.query(FinancialEntry).filter_by(id=entry_id, user_id=user_id).first()
+        if entry:
+            session.delete(entry)
+            session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+
+@log_decorator
+def get_financial_entry_by_name(entry_name, user_id):
+    session = Session()
+    try:
+        return session.query(FinancialEntry).filter_by(name=entry_name, user_id=user_id).first()
+    finally:
+        session.close()
+
 @log_decorator
 def add_record_to_db(record):
-    """Добавление записи в базу данных."""
     session = Session()
     try:
         session.add(record)
@@ -82,6 +115,7 @@ def add_record_to_db(record):
         raise e
     finally:
         session.close()
+
 
 @log_decorator
 def get_user_by_telegram_id(telegram_id):
@@ -99,13 +133,22 @@ def get_all_transactions_by_user_id(user_id):
     session.close()
     return transactions
 
-@log_decorator
-def get_financial_entry_by_id(entry_id):
-    """Получение статьи расхода или дохода по ID."""
+def get_expense_entries(user_id):
     session = Session()
-    entry = session.query(FinancialEntry).get(entry_id)
-    session.close()
-    return entry
+    try:
+        return session.query(FinancialEntry).filter_by(is_expense=True, user_id=user_id).all()
+    finally:
+        session.close()
+
+
+@log_decorator
+def get_income_entries(user_id):
+    session = Session()
+    try:
+        return session.query(FinancialEntry).filter_by(is_expense=False, user_id=user_id).all()
+    finally:
+        session.close()
+
 
 @log_decorator
 def update_user_language(telegram_id, language):
