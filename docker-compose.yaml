@@ -4,7 +4,7 @@ services:
   bot:
     build: .
     ports:
-      - "80:80"
+      - "8090:8090"
     depends_on:
       - db
     environment:
