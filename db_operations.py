@@ -4,6 +4,7 @@ from log import log_decorator, setup_logger, logger
 from models import User, Transaction, FinancialEntry, Base, UserSession
 from sqlalchemy.orm import sessionmaker
 
+
 @log_decorator
 def ensure_db_and_tables_exist(config):
     DATABASE_URL = config['db_url']
