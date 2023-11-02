@@ -91,18 +91,32 @@ def generate_operations_keyboard(type, language_pack, uid):
         buttons = [types.InlineKeyboardButton(entry.name, callback_data=f'income_save_{entry.id}') for entry in income_entries]
     elif type == "entry_edit":
         buttons = [
-            types.InlineKeyboardButton(load_translation("category_expense", lang_code), callback_data="expense_entry"),
-            types.InlineKeyboardButton(load_translation("category_income", lang_code), callback_data="income_entry")
+            types.InlineKeyboardButton(language_pack['category_expense'], callback_data="expense_entry"),
+            types.InlineKeyboardButton(language_pack['category_income'], callback_data="income_entry")
         ]    
     elif type == "monthly_reports1":
         current_year = datetime.now().year
         buttons = [types.InlineKeyboardButton(text=str(year), callback_data=f"year_{year}") for year in range(datetime.now().year - 5, datetime.now().year + 1)]
     elif type == "reports":
         buttons = [
-            types.InlineKeyboardButton("Общий отчет", callback_data='general_report'),
-            types.InlineKeyboardButton("Отчет по категориям", callback_data='category_report'),
-            types.InlineKeyboardButton("Месячный отчет", callback_data='monthly_report'),
-            types.InlineKeyboardButton("График доходов/расходов", callback_data='plot_report')
+            types.InlineKeyboardButton(language_pack['general_report'], callback_data='general_report'),
+            types.InlineKeyboardButton(language_pack['report_by_categories'], callback_data='category_report'),
+            types.InlineKeyboardButton(language_pack['monthly_report'], callback_data='monthly_report'),
+            types.InlineKeyboardButton(language_pack['income_expense_chart'], callback_data='plot_report')
         ]  
+
     markup.add(*buttons)
+    return markup
+
+def generate_regular_keyboard():
+    """Generate a regular keyboard with specified commands."""
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = [
+        '/add_entry',
+        '/change_language',
+        '/get_reports',
+        '/help'
+    ]
+    for btn in buttons:
+        markup.add(btn)
     return markup

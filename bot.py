@@ -17,6 +17,7 @@ from func import (bot_token,
                   load_language_pack,
                   load_translation,
                   lang_keyboard,
+                  generate_regular_keyboard,
                   )
 calendar = DetailedTelegramCalendar()
 
@@ -57,7 +58,7 @@ def send_welcome(message):
     else:
         user_language = get_user_language(user_id)  # Assuming you have a function to get user's preferred language
         greeting = load_translation("greetings", user_language)
-        bot.send_message(user_id, greeting)
+        bot.send_message(user_id, greeting, reply_markup = generate_regular_keyboard())
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('register_'))
 @log_decorator
@@ -79,9 +80,17 @@ def register_bot_user(call):
 # Команда помощи
 @bot.message_handler(commands=['help'])
 def send_help(message):
-    # Здесь вы можете добавить инструкции по использованию вашего бота.
-    bot.send_message(message.chat.id, "This is a financial management bot...")
-
+    user_id = message.chat.id
+    lang_code = get_user_language(user_id)
+    language_pack = load_language_pack(lang_code)
+    markup = generate_regular_keyboard()
+    help_text = f"{language_pack['help']['title']}\n\n"
+    help_text += f"{language_pack['help']['description']}\n\n"
+    for command, description in language_pack['help']['commands'].items():
+        help_text += f"{command} - {description}\n"
+    help_text += f"\n{language_pack['help']['note']}"
+    
+    bot.send_message(user_id, help_text, reply_markup = markup)
 
 # ====== смена языка для зареганных юзеров
 @bot.message_handler(commands=['change_language'])
@@ -122,7 +131,7 @@ def change_language_callback(call):
 @bot.message_handler(commands=['add_entry'])
 def add_entry_command(message):
     start_user_session(message.chat.id, "ADDING_ENTRY_NAME")
-    bot.reply_to(message, load_translation("category_name", get_user_language(message.from_user.id)))
+    bot.reply_to(message, load_translation("choose_category", get_user_language(message.from_user.id)))
 
 @bot.message_handler(func=lambda message: get_user_session_state(message.chat.id) == "ADDING_ENTRY_NAME", content_types=['text'])
 def get_entry_name(message):
@@ -138,13 +147,13 @@ def get_entry_name(message):
 def handle_entry_type(call):
     entry_name = user_amounts[call.message.chat.id]["entry_name"]
     user_id = call.message.chat.id
-
+    user_lang = get_user_language(user_id)
     if call.data == "expense_entry":
         add_financial_entry(entry_name, True, user_id)
-        bot.send_message(user_id, f"Статья расхода '{entry_name}' успешно добавлена!")
+        bot.send_message(user_id, f"{load_translation('category_added', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
     elif call.data == "income_entry":
         add_financial_entry(entry_name, False, user_id)
-        bot.send_message(user_id, f"Статья дохода '{entry_name}' успешно добавлена!")
+        bot.send_message(user_id, f"{load_translation('category_added', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
     # Удаляем временные данные и возвращаемся в начальное состояние
     del user_amounts[call.message.chat.id]
     update_user_session_state(call.message.chat.id, "START")
