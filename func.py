@@ -110,7 +110,7 @@ def generate_operations_keyboard(type, language_pack, uid):
 
 def generate_regular_keyboard():
     """Generate a regular keyboard with specified commands."""
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     buttons = [
         '/add_entry',
         '/change_language',
