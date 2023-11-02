@@ -41,5 +41,5 @@ help:
     help: "/help - 🆘 Displays this help message."
     add_entry: "/add_entry - 💰 Add a new financial entry."
     change_language: "/change_language - 🌐 Change the bot's language."
-    get_reports: "/get_reports - 📊 View financial reports."
+    get_reports: "/get_repor - 📊 View financial reports."
   note: "Note: Some features might be available only after registration or login in the bot."

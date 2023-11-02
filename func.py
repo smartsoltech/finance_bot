@@ -26,7 +26,7 @@ def load_language_pack(lang_code):
     try:
         with open(f'lang/{lang_code}.yaml', 'r', encoding='utf-8') as file:
             return yaml.safe_load(file)
-        print(file)
+        # print(file)
     except Exception as e:
         print(f"Error loading language pack for {lang_code}: {e}")
         return None

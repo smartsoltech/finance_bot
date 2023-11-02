@@ -150,10 +150,10 @@ def handle_entry_type(call):
     user_lang = get_user_language(user_id)
     if call.data == "expense_entry":
         add_financial_entry(entry_name, True, user_id)
-        bot.send_message(user_id, f"{load_translation('category_added', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
+        bot.send_message(user_id, f"{load_translation('choose_category', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
     elif call.data == "income_entry":
         add_financial_entry(entry_name, False, user_id)
-        bot.send_message(user_id, f"{load_translation('category_added', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
+        bot.send_message(user_id, f"{load_translation('choose_category', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
     # Удаляем временные данные и возвращаемся в начальное состояние
     del user_amounts[call.message.chat.id]
     update_user_session_state(call.message.chat.id, "START")
@@ -201,7 +201,7 @@ def record_transaction(call):
         return
 
     entry_id = call.data.split('_')[-1]
-    print(call.data, entry_id)
+    # print(call.data, entry_id)
     transaction = Transaction(user_id=user_id, amount=amount_float, entry_id=entry_id)
     add_record_to_db(transaction)
 
@@ -211,6 +211,11 @@ def record_transaction(call):
 
 # отчеты
 
+
+@bot.message_handler(commands=['get_report'])
+def get_report_command(message):
+    bot.send_message(message.chat.id, load_translation("get_reports", get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("reports", get_user_language(message.from_user.id), message.from_user.id))
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("year_"))
 def handle_year_selection(call):
     year = int(call.data.split("_")[1])
@@ -219,11 +224,7 @@ def handle_year_selection(call):
     for month, amount in monthly_data.items():
         report_msg += f"{month}: {amount}\n"
     bot.send_message(call.message.chat.id, report_msg)
-
-@bot.message_handler(commands=['get_report'])
-def get_report_command(message):
-    bot.send_message(message.chat.id, load_translation("get_reports", get_user_language(message.from_user.id)), reply_markup=generate_operations_keyboard("reports", get_user_language(message.from_user.id), message.from_user.id))
-
+    
 @bot.callback_query_handler(func=lambda call: call.data in ['general_report', 'category_report', 'monthly_report', 'plot_report', 'monthly_report1'])
 def handle_report_request(call):
     user_id = call.message.chat.id
@@ -244,12 +245,12 @@ def handle_report_request(call):
     elif call.data == 'monthly_report':
         markup = generate_operations_keyboard("monthly_report1", get_user_language(user_id), user_id)
         bot.send_message(call.message.chat.id, "Пожалуйста, выберите год для отчета:", reply_markup=markup)
-        print(call.data)
+        # print(call.data)
         monthly_data = monthly_report(user_id, 2023)  # Пример для 2023 года
         total_income, total_expense = monthly_report(user_id, 2023)
         
         report_message = f"Ваши расходы: {total_expense}\nВаши доходы: {total_income}\n Итого: {total_income+total_expense}"
-        print(report_message)
+        # print(report_message)
 
         bot.send_message(user_id, report_message)
 

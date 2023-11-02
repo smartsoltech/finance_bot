@@ -5,10 +5,10 @@ database:
 language:
   default: en
 logging:
-  level: INFO  # Может быть DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: DEBUG  # Может быть DEBUG, INFO, WARNING, ERROR, CRITICAL
   path: 'logs'
   filename: 'log'
 db_logging:
-  level: INFO  # Может быть DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: DEBUG  # Может быть DEBUG, INFO, WARNING, ERROR, CRITICAL
   path: 'logs'
   filename: 'db_log'
