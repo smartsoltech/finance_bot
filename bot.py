@@ -1,6 +1,5 @@
 import telebot
 from telebot import types
-from main import load_config, load_translation, parse_float_input
 import yaml
 from log import log_decorator
 from db_operations import set_user_language, update_user_language, check_user_exists, get_user_language, register_user
@@ -141,6 +140,7 @@ def get_entry_name(message):
     user_amounts[message.chat.id] = {"entry_name": user_entry_name}
     update_user_session_state(message.chat.id, "ADDING_ENTRY_TYPE")
     markup = generate_operations_keyboard("entry_edit", get_user_language(message.from_user.id), message.from_user.id)
+    print(f'print from get_entry_name, use_lang = {get_user_language(message.from_user.id)}')
     bot.send_message(message.chat.id, load_translation("category_name", get_user_language(message.from_user.id)), reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: get_user_session_state(call.message.chat.id) == "ADDING_ENTRY_TYPE" and call.data in ["expense_entry", "income_entry"])
@@ -150,9 +150,12 @@ def handle_entry_type(call):
     user_lang = get_user_language(user_id)
     if call.data == "expense_entry":
         add_financial_entry(entry_name, True, user_id)
+        print(f'print from handle_entry_type. If call.data == "expense", use_lang = {get_user_language(user_lang)}')
+
         bot.send_message(user_id, f"{load_translation('choose_category', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
     elif call.data == "income_entry":
         add_financial_entry(entry_name, False, user_id)
+        print(f'print from handle_entry_type. If call.data == "entry", use_lang = {get_user_language(user_lang)}')
         bot.send_message(user_id, f"{load_translation('choose_category', user_lang )} '{entry_name}' {load_translation('added_success', user_lang )}")
     # Удаляем временные данные и возвращаемся в начальное состояние
     del user_amounts[call.message.chat.id]
@@ -184,7 +187,7 @@ def record_transaction(call):
         transaction_type = "expense" if call.data == "expense_save" else "income"
         markup_type = 'fin_entry_expense' if transaction_type == "expense" else 'fin_entry_income'
         markup = generate_operations_keyboard(markup_type, user_language, user_id)
-        bot.reply_to(call.message, load_translation("choose_category", user_language), reply_markup=markup)
+        bot.reply_to(call.message, load_translation("financial_entries", user_language), reply_markup=markup)
         return
 
     amount = user_amounts.pop(user_id, None)

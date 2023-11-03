@@ -1,4 +1,4 @@
-import telebot
+# import telebot
 from telebot import types
 from main import load_config, load_translation, parse_float_input
 import yaml
@@ -6,9 +6,9 @@ from log import log_decorator
 from db_operations import set_user_language, update_user_language, check_user_exists, get_user_language, register_user
 from models import Transaction
 from db_operations import add_record_to_db, get_expense_entries, get_income_entries, add_financial_entry ,get_financial_entry_by_name, get_all_transactions_by_user_id
-from db_operations import get_user_session_state, update_user_session_state, start_user_session, get_financial_entry_by_telegram_id
-from db_operations import get_financial_entries_by_type
-from reports import general_report, category_report, monthly_report, plot_report
+# from db_operations import get_user_session_state, update_user_session_state, start_user_session, get_financial_entry_by_telegram_id
+# from db_operations import get_financial_entries_by_type
+# from reports import general_report, category_report, monthly_report, plot_report
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from datetime import datetime
 
@@ -114,7 +114,7 @@ def generate_regular_keyboard():
     buttons = [
         '/add_entry',
         '/change_language',
-        '/get_reports',
+        '/get_report',
         '/help'
     ]
     for btn in buttons:
